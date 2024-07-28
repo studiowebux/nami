@@ -474,6 +474,9 @@ export const setNetwork = async (network) => {
   } else if (network.id === NETWORK_ID.preview) {
     id = NETWORK_ID.preview;
     node = NODE.preview;
+  } else if (network.id === NETWORK_ID.private) {
+    id = NETWORK_ID.private;
+    node = NODE.private;
   } else {
     id = NETWORK_ID.preprod;
     node = NODE.preprod;
@@ -660,6 +663,7 @@ export const isValidAddress = async (address) => {
       (addr.network_id() === 0 &&
         (network.id === NETWORK_ID.testnet ||
           network.id === NETWORK_ID.preview ||
+          network.id === NETWORK_ID.private ||
           network.id === NETWORK_ID.preprod))
     )
       return addr.to_bytes();
@@ -672,6 +676,7 @@ export const isValidAddress = async (address) => {
       (addr.network_id() === 0 &&
         (network.id === NETWORK_ID.testnet ||
           network.id === NETWORK_ID.preview ||
+          network.id === NETWORK_ID.private ||
           network.id === NETWORK_ID.preprod))
     )
       return addr.to_address().to_bytes();
@@ -690,6 +695,7 @@ const isValidAddressBytes = async (address) => {
       (addr.network_id() === 0 &&
         (network.id === NETWORK_ID.testnet ||
           network.id === NETWORK_ID.preview ||
+          network.id === NETWORK_ID.private ||
           network.id === NETWORK_ID.preprod))
     )
       return true;
@@ -702,6 +708,7 @@ const isValidAddressBytes = async (address) => {
       (addr.network_id() === 0 &&
         (network.id === NETWORK_ID.testnet ||
           network.id === NETWORK_ID.preview ||
+          network.id === NETWORK_ID.private ||
           network.id === NETWORK_ID.preprod))
     )
       return true;
@@ -1366,6 +1373,11 @@ export const createAccount = async (name, password, accountIndex = null) => {
         paymentAddr: paymentAddrTestnet,
         rewardAddr: rewardAddrTestnet,
       },
+      [NETWORK_ID.private]: {
+        ...networkDefault,
+        paymentAddr: paymentAddrTestnet,
+        rewardAddr: rewardAddrTestnet,
+      },
       avatar: Math.random().toString(),
     },
   };
@@ -1464,6 +1476,11 @@ export const createHWAccounts = async (accounts) => {
         paymentAddr: paymentAddrTestnet,
         rewardAddr: rewardAddrTestnet,
       },
+      [NETWORK_ID.private]: {
+        ...networkDefault,
+        paymentAddr: paymentAddrTestnet,
+        rewardAddr: rewardAddrTestnet,
+      },
       avatar: Math.random().toString(),
     };
   });
@@ -1558,12 +1575,12 @@ export const getAdaHandle = async (assetName) => {
     const network = await getNetwork();
     if (!network) return null;
     let handleUrl;
-    switch (network.id){
+    switch (network.id) {
       case 'mainnet':
-        handleUrl = 'https://api.handle.me'
+        handleUrl = 'https://api.handle.me';
         break;
       case 'preprod':
-        handleUrl = 'https://preprod.api.handle.me'
+        handleUrl = 'https://preprod.api.handle.me';
         break;
       default:
         return null;
@@ -1592,14 +1609,14 @@ export const getMilkomedaData = async (ethAddress) => {
       'https://' +
         milkomedaNetworks['c1-mainnet'].backendEndpoint +
         `/v1/isAddressAllowed?address=${ethAddress}`,
-        { signal: isAddressAllowedController.signal }
+      { signal: isAddressAllowedController.signal }
     ).then((res) => res.json());
     setTimeout(() => stargateController.abort(), 500);
     const { ada, ttl_expiry, assets, current_address } = await fetch(
       'https://' +
         milkomedaNetworks['c1-mainnet'].backendEndpoint +
         '/v1/stargate',
-        { signal: stargateController.signal }
+      { signal: stargateController.signal }
     ).then((res) => res.json());
     const protocolMagic = milkomedaNetworks['c1-mainnet'].protocolMagic;
     return {
@@ -1615,14 +1632,14 @@ export const getMilkomedaData = async (ethAddress) => {
       'https://' +
         milkomedaNetworks['c1-devnet'].backendEndpoint +
         `/v1/isAddressAllowed?address=${ethAddress}`,
-        { signal: isAddressAllowedController.signal }
+      { signal: isAddressAllowedController.signal }
     ).then((res) => res.json());
     setTimeout(() => stargateController.abort(), 500);
     const { ada, ttl_expiry, assets, current_address } = await fetch(
       'https://' +
         milkomedaNetworks['c1-devnet'].backendEndpoint +
         '/v1/stargate',
-        { signal: stargateController.signal }
+      { signal: stargateController.signal }
     ).then((res) => res.json());
     const protocolMagic = milkomedaNetworks['c1-devnet'].protocolMagic;
     return {
@@ -1778,7 +1795,9 @@ export const getAsset = async (unit) => {
         const metadata = metadataDatum && Data.toJson(metadataDatum.fields[0]);
 
         asset.displayName = metadata.name;
-        asset.image = metadata.image ? linkToSrc(convertMetadataPropToString(metadata.image)) : '';
+        asset.image = metadata.image
+          ? linkToSrc(convertMetadataPropToString(metadata.image))
+          : '';
         asset.decimals = 0;
       } catch (_e) {
         asset.displayName = asset.name;
@@ -1805,7 +1824,8 @@ export const getAsset = async (unit) => {
         const metadata = metadataDatum && Data.toJson(metadataDatum.fields[0]);
 
         asset.displayName = metadata.name;
-        asset.image = linkToSrc(convertMetadataPropToString(metadata.logo)) || '';
+        asset.image =
+          linkToSrc(convertMetadataPropToString(metadata.logo)) || '';
         asset.decimals = metadata.decimals || 0;
       } catch (_e) {
         asset.displayName = asset.name;

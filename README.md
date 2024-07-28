@@ -250,3 +250,15 @@ npm test
 ### Website
 
 Visit [namiwallet.io](https://namiwallet.io)<br/>
+
+---
+
+# Notes
+
+```bash
+npm install
+cp secrets.testing.js secrets.production.js
+npm build
+```
+
+Then load the extension in chrome. voila !

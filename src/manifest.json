@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Nami",
+  "name": "Nami Local Private",
   "version": "3.7.4",
   "description": "A wallet to experience Cardano to the fullest",
   "background": { "service_worker": "background.bundle.js" },
