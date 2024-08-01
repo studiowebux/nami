@@ -490,6 +490,7 @@ export const setNetwork = async (network) => {
       node,
       mainnetSubmit: network.mainnetSubmit,
       testnetSubmit: network.testnetSubmit,
+      privateSubmit: network.privateSubmit,
     },
   });
   return true;
@@ -821,14 +822,18 @@ export const verifyTx = async (tx) => {
     const parseTx = Loader.Cardano.Transaction.from_bytes(
       Buffer.from(tx, 'hex')
     );
+    console.debug('Parse TX', parseTx);
     let networkId = parseTx.body().network_id()
       ? parseTx.body().network_id().kind()
       : null;
+    console.log('Network id:', networkId);
     if (!networkId && networkId != 0) {
       networkId = parseTx.body().outputs().get(0).address().network_id();
     }
+    console.debug('Network name to id:', networkNameToId(network.id));
     if (networkId != networkNameToId(network.id)) throw Error('Wrong network');
   } catch (e) {
+    console.error(e);
     throw APIError.InvalidRequest;
   }
 };
@@ -1144,6 +1149,7 @@ export const signTxHW = async (
 
 export const submitTx = async (tx) => {
   const network = await getNetwork();
+  console.log('network to submit tx', network, network[network.id + 'Submit']);
   if (network[network.id + 'Submit']) {
     const result = await fetch(network[network.id + 'Submit'], {
       method: 'POST',
