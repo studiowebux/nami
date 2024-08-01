@@ -91,6 +91,7 @@ export const networkNameToId = (name) => {
     [NETWORK_ID.testnet]: 0,
     [NETWORK_ID.preview]: 0,
     [NETWORK_ID.preprod]: 0,
+    [NETWORK_ID.private]: 0,
   };
   return names[name];
 };

@@ -26,6 +26,7 @@ export enum Events {
   // settings
   SettingsNetworkPreviewClick = 'settings | network | preview | click',
   SettingsNetworkPreprodClick = 'settings | network | preprod | click',
+  SettingsNetworkPrivateClick = 'settings | network | private | click',
   SettingsNetworkMainnetClick = 'settings | network | mainnet | click',
   SettingsNetworkCustomNodeClick = 'settings | network | custom node | click',
 

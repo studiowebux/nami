@@ -72,6 +72,7 @@ export const NODE = {
   preview: 'https://cardano-preview.blockfrost.io/api/v0',
   preprod: 'https://cardano-preprod.blockfrost.io/api/v0',
   private: 'http://192.168.20.105:3010',
+  privateSubmit: 'http://192.168.20.105:8191/api/submit/tx',
 };
 
 export const NETWORK_ID = {

@@ -39,6 +39,12 @@ const migration = {
         paymentAddr: currentAccount[NETWORK_ID.testnet].paymentAddr,
         rewardAddr: currentAccount[NETWORK_ID.testnet].rewardAddr,
       };
+
+      currentAccount[NETWORK_ID.private] = {
+        ...networkDefault,
+        paymentAddr: currentAccount[NETWORK_ID.testnet].paymentAddr,
+        rewardAddr: currentAccount[NETWORK_ID.testnet].rewardAddr,
+      };
     }
 
     // add minAda
