@@ -255,6 +255,8 @@ Visit [namiwallet.io](https://namiwallet.io)<br/>
 
 # Notes
 
+Search for `192.168.20.105` and replace with your IP.
+
 ```bash
 npm install
 cp secrets.testing.js secrets.production.js
