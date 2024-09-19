@@ -260,7 +260,7 @@ Search for `192.168.20.105` and replace with your IP.
 ```bash
 npm install
 cp secrets.testing.js secrets.production.js
-npm build
+npm run build
 ```
 
 Then load the extension in chrome. voila !
