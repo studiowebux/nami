@@ -3,33 +3,66 @@ import { ERROR, TX } from '../../config/config';
 import Loader from '../loader';
 import { blockfrostRequest } from '../util';
 import { decodeTx, encodeTx, transformTx } from 'cardano-hw-interop-lib';
-import { TransactionOutput, AuxiliaryData, Address, Credential, PoolId, RewardAccount } from '@blaze-cardano/core';
+import {
+  TransactionOutput,
+  AuxiliaryData,
+  Address,
+  Credential,
+  PoolId,
+  RewardAccount,
+} from '@blaze-cardano/core';
 
 const RETRIES = 5;
 
 export const initTx = async () => {
   const latest_block = await blockfrostRequest('/blocks/latest');
-  const p = await blockfrostRequest(`/epochs/latest/parameters`);
+  try {
+    const p = await blockfrostRequest(`/epochs/latest/parameters`);
 
-  return {
-    linearFee: {
-      minFeeA: p.min_fee_a.toString(),
-      minFeeB: p.min_fee_b.toString(),
-    },
-    minUtxo: '1000000', //p.min_utxo, minUTxOValue protocol parameter has been removed since Alonzo HF. Calculation of minADA works differently now, but 1 minADA still sufficient for now
-    poolDeposit: p.pool_deposit,
-    keyDeposit: p.key_deposit,
-    coinsPerUtxoWord: p.coins_per_utxo_size.toString(),
-    maxValSize: p.max_val_size,
-    priceMem: p.price_mem,
-    priceStep: p.price_step,
-    // might not be available for pre-conway networks; set to 0 in that case
-    minFeeRefScriptCostPerByte: p.min_fee_ref_script_cost_per_byte || 0,
-    maxTxSize: parseInt(p.max_tx_size),
-    slot: parseInt(latest_block.slot),
-    collateralPercentage: parseInt(p.collateral_percent),
-    maxCollateralInputs: parseInt(p.max_collateral_inputs),
-  };
+    return {
+      linearFee: {
+        minFeeA: p.min_fee_a.toString(),
+        minFeeB: p.min_fee_b.toString(),
+      },
+      minUtxo: '1000000', //p.min_utxo, minUTxOValue protocol parameter has been removed since Alonzo HF. Calculation of minADA works differently now, but 1 minADA still sufficient for now
+      poolDeposit: p.pool_deposit,
+      keyDeposit: p.key_deposit,
+      coinsPerUtxoWord: p.coins_per_utxo_size.toString(),
+      maxValSize: p.max_val_size,
+      priceMem: p.price_mem,
+      priceStep: p.price_step,
+      // might not be available for pre-conway networks; set to 0 in that case
+      minFeeRefScriptCostPerByte: p.min_fee_ref_script_cost_per_byte || 0,
+      maxTxSize: parseInt(p.max_tx_size),
+      slot: parseInt(latest_block.slot),
+      collateralPercentage: parseInt(p.collateral_percent),
+      maxCollateralInputs: parseInt(p.max_collateral_inputs),
+    };
+  } catch (e) {
+    console.error('Blockfrost RYO is broken...', e);
+
+    // Hardcoded from MKFILE.
+    // Blockfrost RYO does not support private nodes
+    return {
+      linearFee: {
+        minFeeA: '44',
+        minFeeB: '155381',
+      },
+      minUtxo: '1000000', //p.min_utxo, minUTxOValue protocol parameter has been removed since Alonzo HF. Calculation of minADA works differently now, but 1 minADA still sufficient for now
+      poolDeposit: '0',
+      keyDeposit: '400000',
+      coinsPerUtxoWord: '4310',
+      maxValSize: '5000',
+      priceMem: 0.0577,
+      priceStep: 0.0000721,
+      // might not be available for pre-conway networks; set to 0 in that case
+      minFeeRefScriptCostPerByte: 0,
+      maxTxSize: 16384,
+      slot: parseInt(latest_block.slot),
+      collateralPercentage: 150,
+      maxCollateralInputs: 3,
+    };
+  }
 };
 
 /**
@@ -42,7 +75,7 @@ export const initTx = async () => {
 const toCanonicalTx = (tx) => {
   const canonicalCbor = encodeTx(transformTx(decodeTx(tx.to_cbor_bytes())));
   return Loader.Cardano.Transaction.from_cbor_bytes(canonicalCbor);
-}
+};
 
 export const buildTx = async (
   account,
@@ -60,17 +93,20 @@ export const buildTx = async (
       .newTransaction()
       .addOutput(TransactionOutput.fromCbor(outputs.get(0).to_cbor_hex()));
 
-    if (auxiliaryData) tx.setAuxiliaryData(AuxiliaryData.fromCbor(auxiliaryData.to_cbor_hex()));
+    if (auxiliaryData)
+      tx.setAuxiliaryData(AuxiliaryData.fromCbor(auxiliaryData.to_cbor_hex()));
 
-    tx.setValidUntil(BigInt(
-      (protocolParameters.slot + TX.invalid_hereafter).toString()
-    ));
+    tx.setValidUntil(
+      BigInt((protocolParameters.slot + TX.invalid_hereafter).toString())
+    );
 
     tx.setChangeAddress(Address.fromBech32(account.paymentAddr));
 
     const result = await tx.complete();
 
-    return toCanonicalTx(Loader.Cardano.Transaction.from_cbor_hex(result.toCbor()));
+    return toCanonicalTx(
+      Loader.Cardano.Transaction.from_cbor_hex(result.toCbor())
+    );
   } catch (e) {
     console.error(e);
     throw e;
@@ -146,27 +182,32 @@ export const delegationTx = async (
     const tx = blaze.newTransaction();
 
     if (!delegation.active)
-      tx.addRegisterStake(Credential.fromCore({
-        type: 0,
-        hash: account.stakeKeyHash
-      }));
+      tx.addRegisterStake(
+        Credential.fromCore({
+          type: 0,
+          hash: account.stakeKeyHash,
+        })
+      );
 
-    tx.addDelegation(Credential.fromCore({
+    tx.addDelegation(
+      Credential.fromCore({
         type: 0,
-        hash: account.stakeKeyHash
+        hash: account.stakeKeyHash,
       }),
       PoolId.fromKeyHash(poolKeyHash)
     );
 
-    tx.setValidUntil(BigInt(
-      (protocolParameters.slot + TX.invalid_hereafter).toString()
-    ));
+    tx.setValidUntil(
+      BigInt((protocolParameters.slot + TX.invalid_hereafter).toString())
+    );
 
     tx.setChangeAddress(Address.fromBech32(account.paymentAddr));
 
     const result = await tx.complete();
 
-    return toCanonicalTx(Loader.Cardano.Transaction.from_cbor_hex(result.toCbor()));
+    return toCanonicalTx(
+      Loader.Cardano.Transaction.from_cbor_hex(result.toCbor())
+    );
   } catch (e) {
     console.error(e);
     throw e;
@@ -184,15 +225,17 @@ export const withdrawalTx = async (account, delegation, protocolParameters) => {
       tx.addWithdrawal(RewardAccount(account.rewardAddr), delegation.rewards);
     }
 
-    tx.setValidUntil(BigInt(
-      (protocolParameters.slot + TX.invalid_hereafter).toString()
-    ));
+    tx.setValidUntil(
+      BigInt((protocolParameters.slot + TX.invalid_hereafter).toString())
+    );
 
     tx.setChangeAddress(Address.fromBech32(account.paymentAddr));
 
     const result = await tx.complete();
 
-    return toCanonicalTx(Loader.Cardano.Transaction.from_cbor_hex(result.toCbor()));
+    return toCanonicalTx(
+      Loader.Cardano.Transaction.from_cbor_hex(result.toCbor())
+    );
   } catch (e) {
     console.error(e);
     throw e;
@@ -207,27 +250,29 @@ export const undelegateTx = async (account, delegation, protocolParameters) => {
 
   while (!isTxBuilt && selectionRetries > 0) {
     try {
-      const txBuilderConfig = Loader.Cardano.TransactionBuilderConfigBuilder.new()
-        .coins_per_utxo_byte(
-          BigInt(protocolParameters.coinsPerUtxoWord)
-        )
-        .fee_algo(
-          Loader.Cardano.LinearFee.new(
-            BigInt(protocolParameters.linearFee.minFeeA),
-            BigInt(protocolParameters.linearFee.minFeeB),
-            BigInt(protocolParameters.minFeeRefScriptCostPerByte)
+      const txBuilderConfig =
+        Loader.Cardano.TransactionBuilderConfigBuilder.new()
+          .coins_per_utxo_byte(BigInt(protocolParameters.coinsPerUtxoWord))
+          .fee_algo(
+            Loader.Cardano.LinearFee.new(
+              BigInt(protocolParameters.linearFee.minFeeA),
+              BigInt(protocolParameters.linearFee.minFeeB),
+              BigInt(protocolParameters.minFeeRefScriptCostPerByte)
+            )
           )
-        )
-        .key_deposit(BigInt(protocolParameters.keyDeposit))
-        .pool_deposit(
-          BigInt(protocolParameters.poolDeposit)
-        )
-        .max_tx_size(protocolParameters.maxTxSize)
-        .max_value_size(protocolParameters.maxValSize)
-        .ex_unit_prices(Loader.Cardano.ExUnitPrices.new(Loader.Cardano.Rational.new(0n, 1n), Loader.Cardano.Rational.new(0n, 1n)))
-        .collateral_percentage(protocolParameters.collateralPercentage)
-        .max_collateral_inputs(protocolParameters.maxCollateralInputs)
-        .build();
+          .key_deposit(BigInt(protocolParameters.keyDeposit))
+          .pool_deposit(BigInt(protocolParameters.poolDeposit))
+          .max_tx_size(protocolParameters.maxTxSize)
+          .max_value_size(protocolParameters.maxValSize)
+          .ex_unit_prices(
+            Loader.Cardano.ExUnitPrices.new(
+              Loader.Cardano.Rational.new(0n, 1n),
+              Loader.Cardano.Rational.new(0n, 1n)
+            )
+          )
+          .collateral_percentage(protocolParameters.collateralPercentage)
+          .max_collateral_inputs(protocolParameters.maxCollateralInputs)
+          .build();
 
       const txBuilder = Loader.Cardano.TransactionBuilder.new(txBuilderConfig);
 
@@ -255,40 +300,49 @@ export const undelegateTx = async (account, delegation, protocolParameters) => {
       );
 
       txBuilder.set_ttl(
-        BigInt(
-          (protocolParameters.slot + TX.invalid_hereafter).toString()
-        )
+        BigInt((protocolParameters.slot + TX.invalid_hereafter).toString())
       );
 
       const utxos = await getUtxos();
 
-      const changeAddress = Loader.Cardano.Address.from_bech32(account.paymentAddr);
+      const changeAddress = Loader.Cardano.Address.from_bech32(
+        account.paymentAddr
+      );
 
       // We need to add one output for input selection to work.
       txBuilder.add_output(
         Loader.Cardano.TransactionOutputBuilder.new()
           .with_address(changeAddress)
           .next()
-          .with_value(Loader.Cardano.Value.new(BigInt(protocolParameters.minUtxo), Loader.Cardano.MultiAsset.new()))
+          .with_value(
+            Loader.Cardano.Value.new(
+              BigInt(protocolParameters.minUtxo),
+              Loader.Cardano.MultiAsset.new()
+            )
+          )
           .build()
       );
 
       utxos.forEach((utxo) => {
-        const input = Loader.Cardano.SingleInputBuilder
-          .from_transaction_unspent_output(utxo)
-          .payment_key();
+        const input =
+          Loader.Cardano.SingleInputBuilder.from_transaction_unspent_output(
+            utxo
+          ).payment_key();
 
         txBuilder.add_utxo(input);
       });
 
-      txBuilder.select_utxos(Loader.Cardano.CoinSelectionStrategyCIP2.RandomImproveMultiAsset);
+      txBuilder.select_utxos(
+        Loader.Cardano.CoinSelectionStrategyCIP2.RandomImproveMultiAsset
+      );
       txBuilder.add_change_if_needed(changeAddress, false);
 
       return toCanonicalTx(
-        txBuilder.build(Loader.Cardano.ChangeSelectionAlgo.Default, changeAddress).build_unchecked()
+        txBuilder
+          .build(Loader.Cardano.ChangeSelectionAlgo.Default, changeAddress)
+          .build_unchecked()
       );
-    }
-    catch (e) {
+    } catch (e) {
       console.error(e);
 
       if (selectionRetries > 0) {
